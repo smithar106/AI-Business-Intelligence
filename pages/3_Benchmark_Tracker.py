@@ -1,0 +1,196 @@
+"""Benchmark Tracker — open-source models ranked by price-adjusted performance.
+
+Pulls leaderboard data from Hugging Face (token-verified) with a clearly
+labelled representative fallback, computes a price-adjusted score, flags
+benchmark regressions vs. the last cached run, and asks Claude to summarize
+what changed this week.
+"""
+from __future__ import annotations
+
+from datetime import datetime
+
+import plotly.express as px
+import streamlit as st
+
+from utils.leaderboard import diff_leaderboard, fetch_leaderboard
+from utils.llm import claude_sync
+from utils.pricing import BENCHMARKS
+from utils.secrets import get_secret, has_secret
+from utils.styles import (
+    CHART_COLORS,
+    banner,
+    inject_css,
+    metric_tile,
+    page_header,
+    sidebar_credit,
+    style_fig,
+)
+
+st.set_page_config(page_title="Benchmark Tracker", page_icon="\U0001F3C6", layout="wide")
+inject_css()
+sidebar_credit()
+
+page_header(
+    "Benchmark Tracker",
+    "Open-source models scored, priced, and ranked by bang-for-buck — with regression alerts.",
+    icon="\U0001F3C6",
+)
+
+HF_TOKEN = get_secret("HUGGINGFACE_TOKEN")
+
+
+def _load(jitter: int):
+    return fetch_leaderboard(HF_TOKEN, jitter_seed=jitter)
+
+
+# ---------------------------------------------------------------------------
+# Initial load (cached in session_state)
+# ---------------------------------------------------------------------------
+if "bench_df" not in st.session_state:
+    data = _load(0)
+    st.session_state.bench_df = data["df"]
+    st.session_state.bench_source = data["source"]
+    st.session_state.bench_live = data["live"]
+    st.session_state.bench_ts = datetime.now()
+    st.session_state.bench_refresh = 0
+    st.session_state.bench_prev = None
+    st.session_state.bench_alerts = []
+    st.session_state.bench_summary = None
+
+# ---------------------------------------------------------------------------
+# Controls
+# ---------------------------------------------------------------------------
+top = st.columns([2.4, 1])
+with top[0]:
+    src = st.session_state.bench_source
+    ts = st.session_state.bench_ts.strftime("%b %d, %Y %H:%M")
+    tag = "good" if st.session_state.bench_live else "bad"
+    st.markdown(
+        f"<span class='pill {tag}'>{src}</span> &nbsp; "
+        f"<span style='color:#6B7280;font-size:.85rem;'>cached {ts}</span>",
+        unsafe_allow_html=True,
+    )
+with top[1]:
+    if st.button("\U0001F504 Refresh data", use_container_width=True):
+        st.session_state.bench_prev = st.session_state.bench_df
+        st.session_state.bench_refresh += 1
+        data = _load(st.session_state.bench_refresh)
+        st.session_state.bench_df = data["df"]
+        st.session_state.bench_source = data["source"]
+        st.session_state.bench_live = data["live"]
+        st.session_state.bench_ts = datetime.now()
+        st.session_state.bench_alerts = diff_leaderboard(
+            st.session_state.bench_df, st.session_state.bench_prev
+        )
+        st.session_state.bench_summary = None
+        st.rerun()
+
+if not HF_TOKEN:
+    banner(
+        "No <b>HUGGINGFACE_TOKEN</b> set — showing a representative dataset. Add the token to verify a live connection.",
+        kind="warn",
+        icon="\u26A0\uFE0F",
+    )
+
+df = st.session_state.bench_df
+
+# ---------------------------------------------------------------------------
+# Best price-adjusted model (top tile)
+# ---------------------------------------------------------------------------
+best = df.sort_values("price_adjusted", ascending=False).iloc[0]
+cheapest = df.sort_values("cost_per_1m").iloc[0]
+strongest = df.sort_values("composite", ascending=False).iloc[0]
+
+m = st.columns([1.4, 1, 1])
+with m[0]:
+    st.markdown(
+        metric_tile(
+            "Best price-adjusted model",
+            best["model"],
+            f"{best['price_adjusted']:.1f} pts per $/1M  •  composite {best['composite']:.1f}",
+            accent=True,
+        ),
+        unsafe_allow_html=True,
+    )
+with m[1]:
+    st.markdown(metric_tile("Strongest overall", strongest["model"], f"composite {strongest['composite']:.1f}"), unsafe_allow_html=True)
+with m[2]:
+    st.markdown(metric_tile("Cheapest", cheapest["model"], f"${cheapest['cost_per_1m']:.2f} / 1M tok"), unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Regression alerts
+# ---------------------------------------------------------------------------
+st.markdown("### \U0001F6A8 Regression alerts")
+alerts = st.session_state.bench_alerts
+if st.session_state.bench_prev is None:
+    banner("No prior run cached yet. Hit <b>Refresh data</b> to capture a new snapshot and compare.", kind="info", icon="\u2139\uFE0F")
+elif alerts:
+    for a in alerts:
+        banner(
+            f"<b>{a['model']}</b> · {a['benchmark']} dropped <b>{a['delta']:.2f}</b> pts "
+            f"({a['old']:.1f} → {a['new']:.1f}) since last run.",
+            kind="danger",
+            icon="\U0001F4C9",
+        )
+else:
+    banner("No regressions over 2 points since the last cached run.", kind="info", icon="\u2705")
+
+# ---------------------------------------------------------------------------
+# Leaderboard table (sortable)
+# ---------------------------------------------------------------------------
+st.markdown("### Leaderboard")
+display_cols = ["model"] + BENCHMARKS + ["composite", "cost_per_1m", "price_adjusted", "n_benchmarks"]
+st.dataframe(
+    df[display_cols],
+    hide_index=True,
+    use_container_width=True,
+    column_config={
+        "model": st.column_config.TextColumn("Model"),
+        "cost_per_1m": st.column_config.NumberColumn("Cost / 1M", format="$%.2f"),
+        "composite": st.column_config.NumberColumn("Composite", format="%.1f"),
+        "price_adjusted": st.column_config.NumberColumn("Price-adjusted", format="%.1f"),
+        "n_benchmarks": st.column_config.NumberColumn("# Benchmarks"),
+        **{b: st.column_config.NumberColumn(b, format="%.1f") for b in BENCHMARKS},
+    },
+)
+st.caption("Click any column header to sort. Composite = mean of the 5 benchmarks (MT-Bench scaled ×10).")
+
+# ---------------------------------------------------------------------------
+# Scatter: cost vs composite (bubble = # benchmarks)
+# ---------------------------------------------------------------------------
+st.markdown("### Price vs. performance")
+fig = px.scatter(
+    df, x="cost_per_1m", y="composite", size="n_benchmarks", color="model",
+    text="model", size_max=34, color_discrete_sequence=CHART_COLORS,
+)
+fig.update_traces(textposition="top center", textfont_size=11)
+fig.update_layout(xaxis_title="Cost per 1M tokens ($)", yaxis_title="Composite score")
+st.plotly_chart(style_fig(fig, height=420), use_container_width=True)
+st.caption("Up and to the left is better — strong scores at low cost. Bubble size = benchmarks tracked.")
+
+# ---------------------------------------------------------------------------
+# Claude summary: what changed this week
+# ---------------------------------------------------------------------------
+st.markdown("### \U0001F4DD What changed in the leaderboard this week")
+if not has_secret("ANTHROPIC_API_KEY"):
+    st.info("Set `ANTHROPIC_API_KEY` to generate the narrative summary.")
+else:
+    if st.session_state.bench_summary is None:
+        table_txt = df[display_cols].to_string(index=False)
+        alert_txt = (
+            "\n".join(f"- {a['model']} {a['benchmark']} {a['delta']:+.2f}" for a in alerts)
+            if alerts else "None over 2 points."
+        )
+        prompt = (
+            "You are an ML analyst. Write a concise weekly briefing titled with a single "
+            "sentence, then 2-3 short bullets, on the open-source LLM leaderboard below. "
+            "Call out the best price-adjusted pick, any regressions, and notable cost/quality "
+            "tradeoffs. Keep it under 130 words.\n\n"
+            f"LEADERBOARD:\n{table_txt}\n\nREGRESSIONS SINCE LAST RUN:\n{alert_txt}"
+        )
+        with st.spinner("Claude is summarizing the leaderboard…"):
+            try:
+                st.session_state.bench_summary = claude_sync(prompt, max_tokens=420, temperature=0.4)
+            except Exception as exc:  # noqa: BLE001
+                st.session_state.bench_summary = f"_Summary unavailable: {exc}_"
+    st.markdown(f"<div class='card'>{st.session_state.bench_summary}</div>", unsafe_allow_html=True)
