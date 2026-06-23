@@ -14,7 +14,7 @@ import plotly.express as px
 import streamlit as st
 
 from utils.llm import call_model, claude_json, claude_sync
-from utils.pricing import MODELS, REGRESSION_MODELS
+from utils.pricing import MODELS, REGRESSION_MODELS, blended_price_per_million
 from utils.secrets import has_secret
 from utils.styles import (
     ACCENT,
@@ -44,6 +44,18 @@ PROVIDER_KEYS = {
     "google": "GEMINI_API_KEY",
 }
 
+PROVIDER_NAMES = {
+    "anthropic": "Anthropic",
+    "openai": "OpenAI",
+    "deepseek": "DeepSeek",
+    "google": "Google",
+}
+
+
+def _model_label(key: str) -> str:
+    """Polished dropdown label, e.g. 'DeepSeek (deepseek-chat)'."""
+    return f"{PROVIDER_NAMES.get(MODELS[key]['provider'], '?')} ({key})"
+
 EXAMPLE_PROMPTS = [
     "Explain the difference between concurrency and parallelism to a junior engineer, with one concrete analogy.",
     "Write a Python function that returns the nth Fibonacci number using memoization. Include a docstring.",
@@ -62,9 +74,9 @@ for i in range(NUM_SLOTS):
 
 ctrl = st.columns([1, 1, 1.2])
 with ctrl[0]:
-    model_a = st.selectbox("Model A", REGRESSION_MODELS, index=0)
+    model_a = st.selectbox("Model A", REGRESSION_MODELS, index=0, format_func=_model_label)
 with ctrl[1]:
-    model_b = st.selectbox("Model B", REGRESSION_MODELS, index=2)
+    model_b = st.selectbox("Model B", REGRESSION_MODELS, index=2, format_func=_model_label)
 with ctrl[2]:
     st.markdown("<div style='height:1.85rem;'></div>", unsafe_allow_html=True)
     if st.button("\U0001F4DD Load example prompts", use_container_width=True):
@@ -204,11 +216,24 @@ if results:
     all_calls = [r["a"] for r in results] + [r["b"] for r in results]
     total_cost = sum(c["cost"] for c in all_calls)
     avg_latency = round(sum(c["latency_ms"] for c in all_calls) / len(all_calls))
-    total_in = sum(c["input_tokens"] for c in all_calls)
-    total_out = sum(c["output_tokens"] for c in all_calls)
-    total_tokens = max(total_in + total_out, 1)
-    cost_per_token = total_cost / total_tokens
-    projected_1m_day = cost_per_token * 1_000_000
+
+    TOK_PER_DAY = 10_000_000
+
+    def _proj_day(side: str, model: str) -> float:
+        calls = [r[side] for r in results]
+        tin = sum(c["input_tokens"] for c in calls)
+        tout = sum(c["output_tokens"] for c in calls)
+        cost = sum(c["cost"] for c in calls)
+        if tin + tout > 0:
+            return cost / (tin + tout) * TOK_PER_DAY
+        return blended_price_per_million(model) * (TOK_PER_DAY / 1_000_000)
+
+    proj_a, proj_b = _proj_day("a", model_a), _proj_day("b", model_b)
+    lo, hi = min(proj_a, proj_b), max(proj_a, proj_b)
+    mult = (hi / lo) if lo > 0 else 0.0
+    cheaper = model_a if proj_a <= proj_b else model_b
+    pricier = model_b if cheaper == model_a else model_a
+    name = lambda k: _model_label(k).split(" (")[0]  # noqa: E731
 
     st.markdown("### Run summary")
     m = st.columns(3)
@@ -217,9 +242,20 @@ if results:
     with m[1]:
         st.markdown(metric_tile("Avg cost / run", f"${total_cost / n:.4f}", f"{n} prompt(s), both models"), unsafe_allow_html=True)
     with m[2]:
-        st.markdown(
-            metric_tile("Projected @ 1M tok/day", f"${projected_1m_day:,.2f}", "blended at observed mix", accent=True),
-            unsafe_allow_html=True,
+        gap = f"{mult:.0f}\u00d7 cheaper" if mult >= 2 else (f"{mult:.1f}\u00d7" if mult else "\u2014")
+        st.markdown(metric_tile("Cost gap at scale", gap, f"{name(cheaper)} vs {name(pricier)}", accent=True), unsafe_allow_html=True)
+
+    st.markdown("#### Projected cost at scale \u2014 10M tokens/day")
+    cc = st.columns(2)
+    with cc[0]:
+        st.markdown(metric_tile(_model_label(model_a), f"${proj_a:,.0f}/day", "at observed token mix", accent=(cheaper == model_a)), unsafe_allow_html=True)
+    with cc[1]:
+        st.markdown(metric_tile(_model_label(model_b), f"${proj_b:,.0f}/day", "at observed token mix", accent=(cheaper == model_b)), unsafe_allow_html=True)
+    if mult >= 1.5:
+        st.caption(
+            f"At 10M tokens/day, **{name(cheaper)}** runs ~**${lo:,.0f}/day** vs ~**${hi:,.0f}/day** for "
+            f"**{name(pricier)}** \u2014 about **{mult:.0f}\u00d7 cheaper**. The cost gap is the headline; "
+            "the quality scores below are how you justify paying more."
         )
 
     # Verdict

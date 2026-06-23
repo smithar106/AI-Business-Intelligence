@@ -17,6 +17,7 @@ from utils.llm import claude_sync
 from utils.pricing import BENCHMARKS
 from utils.secrets import get_secret, has_secret
 from utils.styles import (
+    ACCENT,
     CHART_COLORS,
     INK,
     banner,
@@ -155,6 +156,29 @@ st.dataframe(
     },
 )
 st.caption("Click any column header to sort. Composite = mean of the 5 benchmarks (MT-Bench scaled ×10).")
+
+# ---------------------------------------------------------------------------
+# Price-adjusted ranking (the screenshot chart)
+# ---------------------------------------------------------------------------
+st.markdown("### Price-adjusted ranking")
+pa = df.sort_values("price_adjusted", ascending=True)  # ascending → best on top in h-bar
+fig = px.bar(
+    pa, x="price_adjusted", y="model", orientation="h",
+    color="price_adjusted", color_continuous_scale=["#C7CBDD", ACCENT],
+    text=pa["price_adjusted"].map(lambda v: f"{v:.0f}"),
+)
+fig.update_traces(
+    textposition="outside", cliponaxis=False, textfont=dict(color=INK, size=12),
+    marker_line_width=0,
+    hovertemplate="<b>%{y}</b><br>%{x:.1f} pts per $/1M tokens<extra></extra>",
+)
+fig.update_layout(
+    coloraxis_showscale=False,
+    xaxis_title="Price-adjusted score  (composite ÷ cost per 1M tokens)",
+    yaxis_title=None,
+)
+st.plotly_chart(style_fig(fig, height=360), use_container_width=True)
+st.caption("Higher = more quality per dollar. Best bang-for-buck sits at the top.")
 
 # ---------------------------------------------------------------------------
 # Scatter: cost vs composite (bubble = # benchmarks)

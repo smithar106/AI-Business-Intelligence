@@ -260,6 +260,7 @@ fig = px.bar(
 fig.update_traces(
     textposition="outside", textfont=dict(color=INK, size=12),
     marker_line_width=0, cliponaxis=False,
+    hovertemplate="<b>%{x}</b><br>%{text}<extra></extra>",
 )
 fig.update_layout(showlegend=False, xaxis_title=None, yaxis_title="Spend ($)")
 st.plotly_chart(style_fig(fig, height=340), use_container_width=True)

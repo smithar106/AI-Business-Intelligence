@@ -5,20 +5,24 @@ suite feels cohesive. The full CSS block is also injected from ``app.py``.
 """
 from __future__ import annotations
 
+import base64
+from pathlib import Path
+
 import streamlit as st
 
 # ---------------------------------------------------------------------------
 # Brand palette
 # ---------------------------------------------------------------------------
-ACCENT = "#5B5FED"          # indigo
+ACCENT = "#5B5FED"          # indigo — PRIMARY, keep consistent across all tabs
 ACCENT_SOFT = "#EEF0FE"     # indigo tint for fills / chips
 ACCENT_DARK = "#3F43C9"
-BG = "#F6F7FB"              # app background (cool, premium light)
+BG = "#EDF0F8"             # app background — cooler so white cards pop (contrast)
 SURFACE = "#FFFFFF"         # cards
-INK = "#101426"            # primary text (high contrast)
-MUTED = "#5A6275"          # secondary text (AA contrast on white)
-BORDER = "#E6E8F2"
-GRID = "#EEF0F7"           # subtle chart gridlines
+INK = "#0C1020"            # primary text (maximum contrast)
+MUTED = "#4C5468"          # secondary text (darker for stronger contrast)
+BORDER = "#DCDFEC"          # default subtle border (more visible)
+BORDER_STRONG = "#C5C9DC"   # defined outlines for cards / sections / buttons
+GRID = "#E7EAF3"           # subtle chart gridlines
 SUCCESS = "#15A34A"
 DANGER = "#E11D48"
 WARNING = "#D97706"
@@ -26,7 +30,8 @@ WARNING = "#D97706"
 # Categorical palette for charts — indigo-led, high-contrast, harmonious.
 CHART_COLORS = ["#5B5FED", "#0EA5E9", "#F59E0B", "#10B981", "#F43F5E", "#8B5CF6"]
 
-GITHUB_URL = "https://github.com/arthursmith"  # placeholder — update me
+GITHUB_URL = "https://github.com/smithar106/"
+LINKEDIN_URL = "https://www.linkedin.com/in/arthursmith11/"
 
 
 def _css() -> str:
@@ -68,11 +73,11 @@ def _css() -> str:
 
     /* ---- Cards ---- */
     .card {{
-        background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 16px;
-        padding: 1.4rem 1.4rem; box-shadow: 0 1px 3px rgba(16,24,40,0.04), 0 8px 24px -16px rgba(16,24,40,0.18);
-        transition: transform .15s ease, box-shadow .15s ease; height: 100%;
+        background: {SURFACE}; border: 1.5px solid {BORDER_STRONG}; border-radius: 16px;
+        padding: 1.4rem 1.4rem; box-shadow: 0 1px 2px rgba(16,24,40,0.06), 0 10px 26px -16px rgba(16,24,40,0.22);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; height: 100%;
     }}
-    .card:hover {{ transform: translateY(-3px); box-shadow: 0 12px 32px -14px rgba(91,95,237,0.35); }}
+    .card:hover {{ transform: translateY(-3px); border-color: {ACCENT}; box-shadow: 0 14px 34px -14px rgba(91,95,237,0.4); }}
     .card .ico {{
         width: 42px; height: 42px; border-radius: 11px; background: {ACCENT_SOFT}; color: {ACCENT};
         display:flex; align-items:center; justify-content:center; font-size: 1.25rem; margin-bottom: .85rem;
@@ -83,20 +88,20 @@ def _css() -> str:
 
     /* ---- Metric tiles ---- */
     .tile {{
-        background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 14px;
-        padding: 1.05rem 1.2rem; box-shadow: 0 1px 3px rgba(16,24,40,0.05); height: 100%;
+        background: {SURFACE}; border: 1.5px solid {BORDER_STRONG}; border-radius: 14px;
+        padding: 1.05rem 1.2rem; box-shadow: 0 1px 2px rgba(16,24,40,0.06), 0 6px 18px -14px rgba(16,24,40,0.18); height: 100%;
     }}
     .tile .label {{ color: {MUTED}; font-size: .76rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }}
     .tile .value {{ color: {INK}; font-size: 1.7rem; font-weight: 800; line-height: 1.15; margin-top: .25rem; letter-spacing: -0.02em; }}
     .tile .sub {{ color: {MUTED}; font-size: .8rem; margin-top: .2rem; }}
-    .tile.accent {{ background: linear-gradient(135deg, {ACCENT} 0%, {ACCENT_DARK} 100%); border: none; }}
-    .tile.accent .label, .tile.accent .sub {{ color: rgba(255,255,255,.85); }}
+    .tile.accent {{ background: linear-gradient(135deg, {ACCENT} 0%, {ACCENT_DARK} 100%); border: none; box-shadow: 0 10px 26px -10px rgba(91,95,237,0.5); }}
+    .tile.accent .label, .tile.accent .sub {{ color: rgba(255,255,255,.88); }}
     .tile.accent .value {{ color: #fff; }}
 
     /* ---- Streamlit native metric polish ---- */
     [data-testid="stMetric"] {{
-        background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 14px;
-        padding: 1rem 1.1rem; box-shadow: 0 1px 3px rgba(16,24,40,0.05);
+        background: {SURFACE}; border: 1.5px solid {BORDER_STRONG}; border-radius: 14px;
+        padding: 1rem 1.1rem; box-shadow: 0 1px 2px rgba(16,24,40,0.06);
     }}
     [data-testid="stMetricLabel"] {{ color: {MUTED}; }}
 
@@ -121,11 +126,20 @@ def _css() -> str:
 
     /* ---- Buttons ---- */
     .stButton > button {{
-        border-radius: 10px; border: 1px solid {BORDER}; font-weight: 600; padding: .45rem 1rem;
-        transition: all .15s ease;
+        border-radius: 10px; border: 1.5px solid {BORDER_STRONG}; background: {SURFACE};
+        color: {INK}; font-weight: 600; padding: .5rem 1.05rem;
+        box-shadow: 0 1px 2px rgba(16,24,40,0.06); transition: all .15s ease;
     }}
-    .stButton > button:hover {{ border-color: {ACCENT}; color: {ACCENT}; }}
-    .stButton > button[kind="primary"] {{ background: {ACCENT}; border-color: {ACCENT}; color: #fff; }}
+    .stButton > button:hover {{
+        border-color: {ACCENT}; color: {ACCENT_DARK}; background: {ACCENT_SOFT};
+        box-shadow: 0 3px 10px -2px rgba(91,95,237,0.25);
+    }}
+    .stButton > button:active {{ transform: translateY(1px); }}
+    .stButton > button:focus {{ box-shadow: 0 0 0 3px rgba(91,95,237,0.25); }}
+    .stButton > button[kind="primary"] {{
+        background: {ACCENT}; border: 1.5px solid {ACCENT}; color: #fff;
+        box-shadow: 0 4px 14px -3px rgba(91,95,237,0.5);
+    }}
     .stButton > button[kind="primary"]:hover {{ background: {ACCENT_DARK}; border-color: {ACCENT_DARK}; color: #fff; }}
 
     /* ---- Tabs ---- */
@@ -136,6 +150,34 @@ def _css() -> str:
     .credit {{ font-size: .82rem; color: {MUTED}; line-height: 1.5; }}
     .credit b {{ color: {INK}; }}
     .credit a {{ color: {ACCENT}; font-weight: 600; }}
+
+    /* ---- Bordered containers (answer / verdict / summary boxes) ---- */
+    [data-testid="stVerticalBlockBorderWrapper"] {{
+        border-radius: 14px; box-shadow: 0 1px 2px rgba(16,24,40,0.06);
+    }}
+
+    /* ---- Inputs: clearer outline + accent focus ---- */
+    .stTextInput div[data-baseweb="input"],
+    .stTextArea div[data-baseweb="textarea"],
+    .stSelectbox div[data-baseweb="select"] > div {{
+        border: 1.5px solid {BORDER_STRONG} !important; border-radius: 10px !important;
+        background: {SURFACE} !important;
+    }}
+    .stTextInput div[data-baseweb="input"]:focus-within,
+    .stTextArea div[data-baseweb="textarea"]:focus-within,
+    .stSelectbox div[data-baseweb="select"] > div:focus-within {{
+        border-color: {ACCENT} !important; box-shadow: 0 0 0 3px rgba(91,95,237,0.18) !important;
+    }}
+
+    /* ---- Expander + dataframe outlines ---- */
+    [data-testid="stExpander"] {{
+        border: 1.5px solid {BORDER_STRONG}; border-radius: 12px; background: {SURFACE};
+        box-shadow: 0 1px 2px rgba(16,24,40,0.05);
+    }}
+    [data-testid="stDataFrame"] {{ border: 1.5px solid {BORDER_STRONG}; border-radius: 12px; }}
+
+    /* ---- Dividers ---- */
+    hr {{ border: none; border-top: 1.5px solid {BORDER}; margin: 1.15rem 0; }}
 
     /* Hide Streamlit's auto-generated page nav — we render a branded one. */
     [data-testid="stSidebarNav"] {{ display: none; }}
@@ -151,15 +193,34 @@ def inject_css() -> None:
     st.markdown(_css(), unsafe_allow_html=True)
 
 
+def _avatar_html(size: int = 72) -> str:
+    """Return an <img> for the profile photo if assets/arthur.* exists, else ''."""
+    assets = Path(__file__).resolve().parent.parent / "assets"
+    for name in ("arthur.jpg", "arthur.jpeg", "arthur.png", "profile.jpg", "profile.png"):
+        p = assets / name
+        if p.exists():
+            mime = "png" if p.suffix.lower() == ".png" else "jpeg"
+            b64 = base64.b64encode(p.read_bytes()).decode()
+            return (
+                f'<img src="data:image/{mime};base64,{b64}" alt="Arthur Smith" '
+                f'style="width:{size}px;height:{size}px;border-radius:50%;object-fit:cover;'
+                f'border:3px solid #FFFFFF;box-shadow:0 4px 14px -4px rgba(16,24,40,.4),'
+                f'0 0 0 1.5px {ACCENT};" />'
+            )
+    return ""
+
+
 def sidebar_credit() -> None:
-    """Small 'Built by Arthur Smith' credit with a GitHub link placeholder."""
+    """'Built by Arthur Smith' with LinkedIn + GitHub links."""
     with st.sidebar:
         st.markdown("---")
         st.markdown(
             f"""
             <div class="credit">
               Built by <b>Arthur Smith</b><br/>
-              <a href="{GITHUB_URL}" target="_blank">GitHub &rarr;</a>
+              <a href="{LINKEDIN_URL}" target="_blank">LinkedIn</a>
+              &nbsp;&middot;&nbsp;
+              <a href="{GITHUB_URL}" target="_blank">GitHub</a>
             </div>
             """,
             unsafe_allow_html=True,
@@ -168,7 +229,13 @@ def sidebar_credit() -> None:
 
 def sidebar_nav() -> None:
     """Branded sidebar navigation (replaces Streamlit's hidden auto-nav)."""
+    avatar = _avatar_html()
     with st.sidebar:
+        if avatar:
+            st.markdown(
+                f"<div style='text-align:left; margin-bottom:.7rem;'>{avatar}</div>",
+                unsafe_allow_html=True,
+            )
         st.markdown(
             f"<h2 style='margin-bottom:.1rem;'>\U0001F4CA AI Ops</h2>"
             f"<div style='color:{ACCENT}; font-weight:600; font-size:.78rem; "
