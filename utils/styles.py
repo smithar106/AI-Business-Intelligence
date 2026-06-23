@@ -179,9 +179,17 @@ def _css() -> str:
     /* ---- Chart frames ---- */
     [data-testid="stPlotlyChart"] {{
         border: 1.5px solid {BORDER_STRONG}; border-radius: 14px; background: {SURFACE};
-        padding: .65rem .65rem .35rem; box-shadow: 0 1px 2px rgba(16,24,40,0.06);
+        padding: .6rem .4rem .3rem; box-shadow: 0 1px 2px rgba(16,24,40,0.06);
+        overflow: hidden;
     }}
-    [data-testid="stPlotlyChart"] > div {{ border-radius: 10px; overflow: hidden; }}
+
+    /* ---- Status chip box (Benchmark data source) ---- */
+    .statusbox {{
+        display:inline-flex; align-items:center; gap:.6rem; flex-wrap:wrap;
+        border: 1.5px solid {BORDER_STRONG}; border-radius: 12px; background: {SURFACE};
+        padding: .5rem .8rem; box-shadow: 0 1px 2px rgba(16,24,40,0.06);
+        font-size: .85rem; color: {MUTED};
+    }}
 
     /* ---- Dividers ---- */
     hr {{ border: none; border-top: 1.5px solid {BORDER}; margin: 1.15rem 0; }}
@@ -288,7 +296,7 @@ def style_fig(fig, height: int = 360):
     """Apply the suite's clean, high-contrast look to a Plotly figure."""
     fig.update_layout(
         height=height,
-        margin=dict(l=8, r=12, t=22, b=8),
+        margin=dict(l=16, r=16, t=30, b=14),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, sans-serif", color=INK, size=13),

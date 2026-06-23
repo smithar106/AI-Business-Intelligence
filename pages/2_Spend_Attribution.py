@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from utils.llm import claude_stream
+from utils.llm import claude_stream, md_escape
 from utils.secrets import has_secret
 from utils.styles import (
     ACCENT,
@@ -152,7 +152,8 @@ if question:
                 st.markdown(st.session_state["spend_answer"])
             else:
                 answer = st.write_stream(
-                    claude_stream(prompt, system=system, max_tokens=500, temperature=0.3)
+                    md_escape(chunk)
+                    for chunk in claude_stream(prompt, system=system, max_tokens=500, temperature=0.3)
                 )
                 st.session_state["spend_answer"] = answer
                 st.session_state["spend_answered_q"] = question
@@ -226,10 +227,11 @@ with row1[0]:
         marker=dict(line=dict(color="#FFFFFF", width=2)),
         hovertemplate="%{label}<br>$%{value:,.0f} (%{percent})<extra></extra>",
     )
-    fig = style_fig(fig, height=340)
+    fig = style_fig(fig, height=360)
     fig.update_layout(
         showlegend=False,
         uniformtext=dict(minsize=10, mode="hide"),
+        margin=dict(l=12, r=12, t=14, b=12),
         annotations=[dict(
             text=f"<b>${total_spend:,.0f}</b><br><span style='font-size:11px;color:{MUTED}'>30-day total</span>",
             x=0.5, y=0.5, showarrow=False, font=dict(size=20, color=INK, family="Inter"),
@@ -267,7 +269,7 @@ fig = px.bar(
 )
 fig.update_traces(
     textposition="outside", textfont=dict(color=INK, size=12),
-    marker_line_width=0, cliponaxis=False,
+    marker_line_width=0,
     hovertemplate="<b>%{x}</b><br>%{text}<extra></extra>",
 )
 fig.update_layout(

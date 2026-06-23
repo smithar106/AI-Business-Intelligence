@@ -13,7 +13,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from utils.llm import call_model, claude_json, claude_sync
+from utils.llm import call_model, claude_json, claude_sync, md_escape
 from utils.pricing import MODELS, REGRESSION_MODELS, blended_price_per_million
 from utils.secrets import has_secret
 from utils.styles import (
@@ -263,7 +263,7 @@ if results:
     if verdict:
         st.markdown("### \U0001F3C5 Verdict")
         with st.container(border=True):
-            st.markdown(verdict)
+            st.markdown(md_escape(verdict))
 
     # Quality bar chart (st.bar_chart): quality score per prompt per model
     st.markdown("### Quality scores by prompt")
@@ -285,7 +285,7 @@ if results:
     )
     fig.update_traces(
         textposition="outside", textfont=dict(color=INK, size=11),
-        marker_line_width=0, cliponaxis=False,
+        marker_line_width=0,
     )
     fig.update_layout(yaxis=dict(range=[0, 10.8]), yaxis_title="Quality (1–10)", xaxis_title=None)
     fig = style_fig(fig, height=340)

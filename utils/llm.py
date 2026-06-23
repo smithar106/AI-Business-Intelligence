@@ -16,6 +16,15 @@ from .secrets import get_secret
 # ---------------------------------------------------------------------------
 # JSON parsing
 # ---------------------------------------------------------------------------
+def md_escape(text: str) -> str:
+    """Escape '$' so Streamlit markdown doesn't treat it as LaTeX math.
+
+    Dollar amounts in Claude's answers (e.g. "$13,171") otherwise get rendered
+    as KaTeX, producing garbled vertically-stacked text.
+    """
+    return (text or "").replace("$", "\\$")
+
+
 def parse_json(text: str) -> Any:
     """Best-effort extraction of a JSON object/array from a model response."""
     if not text:

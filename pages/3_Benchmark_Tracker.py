@@ -13,7 +13,7 @@ import plotly.express as px
 import streamlit as st
 
 from utils.leaderboard import diff_leaderboard, fetch_leaderboard
-from utils.llm import claude_sync
+from utils.llm import claude_sync, md_escape
 from utils.pricing import BENCHMARKS
 from utils.secrets import get_secret, has_secret
 from utils.styles import (
@@ -68,8 +68,8 @@ with top[0]:
     ts = st.session_state.bench_ts.strftime("%b %d, %Y %H:%M")
     tag = "good" if st.session_state.bench_live else "bad"
     st.markdown(
-        f"<span class='pill {tag}'>{src}</span> &nbsp; "
-        f"<span style='color:#6B7280;font-size:.85rem;'>cached {ts}</span>",
+        f"<div class='statusbox'><span class='pill {tag}'>{src}</span>"
+        f"<span>cached {ts}</span></div>",
         unsafe_allow_html=True,
     )
 with top[1]:
@@ -168,7 +168,7 @@ fig = px.bar(
     text=pa["price_adjusted"].map(lambda v: f"{v:.0f}"),
 )
 fig.update_traces(
-    textposition="outside", cliponaxis=False, textfont=dict(color=INK, size=12),
+    textposition="outside", textfont=dict(color=INK, size=12),
     marker_line_width=0,
     hovertemplate="<b>%{y}</b><br>%{x:.1f} pts per $/1M tokens<extra></extra>",
 )
@@ -198,7 +198,7 @@ fig = px.scatter(
 )
 fig.update_traces(
     marker=dict(size=12, line=dict(width=1.5, color="#FFFFFF"), opacity=0.95),
-    textposition="top center", textfont=dict(size=11, color=INK), cliponaxis=False,
+    textposition="top center", textfont=dict(size=11, color=INK),
     hovertemplate="<b>%{customdata[0]}</b><br>$%{customdata[1]:.2f}/1M tokens"
                   "  ·  composite %{customdata[2]:.1f}<extra></extra>",
 )
@@ -214,7 +214,6 @@ fig.update_layout(
     yaxis_range=[ymin - ypad, ymax + ypad],
 )
 st.plotly_chart(style_fig(fig, height=440), use_container_width=True)
-st.caption("Up and to the left is better — strong scores at low cost. Each dot is a model (hover for full name).")
 
 # ---------------------------------------------------------------------------
 # Claude summary: what changed this week
@@ -252,4 +251,4 @@ else:
     # paragraph (uniform spacing), regardless of how the model spaced them.
     _lines = [ln.strip() for ln in (st.session_state.bench_summary or "").splitlines() if ln.strip()]
     with st.container(border=True):
-        st.markdown("\n\n".join(_lines))
+        st.markdown(md_escape("\n\n".join(_lines)))
