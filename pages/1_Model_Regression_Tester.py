@@ -170,6 +170,15 @@ if run:
         st.error("Add at least one prompt (or click **Load example prompts**).")
     elif missing:
         st.error("Missing API key(s): " + ", ".join(sorted(missing)) + ". Add them in secrets / env vars.")
+        with st.expander("\U0001F50D Debug: environment variable status", expanded=True):
+            import os
+            st.markdown("##### Keys the regression tester is checking for")
+            for k in sorted(needed):
+                found = k in os.environ
+                icon = "\u2705" if found else "\u274C"
+                st.caption(f"{icon} `{k}` — {'found' if found else 'NOT found'} in os.environ")
+            st.caption("—")
+            st.caption("If all show **NOT found**: add these as **Variables** in your Railway project dashboard, then **redeploy** the service (Variables \u2192 \u2026 menu \u2192 Redeploy).")
     else:
         with st.spinner(f"Running {len(prompts)} prompt(s) on {model_a} and {model_b} in parallel…"):
             results = asyncio.run(_run_all(prompts, model_a, model_b))
