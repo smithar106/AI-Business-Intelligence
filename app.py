@@ -110,9 +110,3 @@ def cards() -> None:
 sidebar()
 hero()
 cards()
-
-st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-st.caption(
-    "Set your API keys in `.streamlit/secrets.toml` (local) or as environment variables "
-    "(Railway). All Claude features use a standard `ANTHROPIC_API_KEY`."
-)
