@@ -88,6 +88,8 @@ EXAMPLES = [
 
 st.session_state.setdefault("spend_q", "")
 st.session_state.setdefault("spend_pending", "")
+st.session_state.setdefault("spend_answer", "")
+st.session_state.setdefault("spend_answered_q", "")
 
 # ---------------------------------------------------------------------------
 # Ask box + example chips
@@ -125,12 +127,21 @@ if question:
             "out the anomaly window explicitly. Keep it under ~150 words."
         )
         prompt = f"DATASET:\n{build_context(df)}\n\nQUESTION: {question}\n\nAnswer:"
+        cached = (
+            st.session_state.get("spend_answered_q") == question
+            and st.session_state.get("spend_answer")
+        )
         with st.container(border=True):
             st.markdown('<div class="qa-marker"></div>', unsafe_allow_html=True)
             st.markdown(f"<span class='qa-question'>{question}</span>", unsafe_allow_html=True)
-            st.write_stream(
-                claude_stream(prompt, system=system, max_tokens=500, temperature=0.3)
-            )
+            if cached:
+                st.markdown(st.session_state["spend_answer"])
+            else:
+                answer = st.write_stream(
+                    claude_stream(prompt, system=system, max_tokens=500, temperature=0.3)
+                )
+                st.session_state["spend_answer"] = answer
+                st.session_state["spend_answered_q"] = question
         with st.expander("Supporting data"):
             c1, c2 = st.columns(2)
             c1.caption("By model (30d)")

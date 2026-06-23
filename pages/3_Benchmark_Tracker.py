@@ -193,4 +193,5 @@ else:
                 st.session_state.bench_summary = claude_sync(prompt, max_tokens=420, temperature=0.4)
             except Exception as exc:  # noqa: BLE001
                 st.session_state.bench_summary = f"_Summary unavailable: {exc}_"
-    st.markdown(f"<div class='card'>{st.session_state.bench_summary}</div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(st.session_state.bench_summary)

@@ -222,7 +222,8 @@ if results:
     verdict = st.session_state.get("reg_verdict")
     if verdict:
         st.markdown("### \U0001F3C5 Verdict")
-        st.markdown(f"<div class='card'>{verdict}</div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(verdict)
 
     # Quality bar chart (st.bar_chart): quality score per prompt per model
     st.markdown("### Quality scores by prompt")
