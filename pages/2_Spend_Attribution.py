@@ -102,6 +102,11 @@ st.text_input(
     placeholder="e.g. Which provider is driving most of our cost this month?",
 )
 
+ask = st.button("\U0001F4AC Ask", type="primary")
+if ask and st.session_state["spend_q"].strip():
+    st.session_state["spend_pending"] = st.session_state["spend_q"].strip()
+
+
 def _ask_example(q: str):
     # Runs before widgets are re-instantiated, so writing to the widget-backed
     # key "spend_q" is allowed here (it is not in the main script body).
@@ -109,6 +114,7 @@ def _ask_example(q: str):
     st.session_state["spend_pending"] = q
 
 
+st.caption("Or try an example:")
 chip_cols = st.columns(len(EXAMPLES))
 for col, q in zip(chip_cols, EXAMPLES):
     with col:
@@ -119,10 +125,6 @@ for col, q in zip(chip_cols, EXAMPLES):
             on_click=_ask_example,
             args=(q,),
         )
-
-ask = st.button("\U0001F4AC Ask", type="primary")
-if ask and st.session_state["spend_q"].strip():
-    st.session_state["spend_pending"] = st.session_state["spend_q"].strip()
 
 # ---------------------------------------------------------------------------
 # Claude answer
@@ -211,17 +213,23 @@ with row1[0]:
     st.markdown("**Total spend by provider**")
     prov = by_provider(df)
     total_spend = prov["cost"].sum()
+    _PROV_INIT = {"Anthropic": "ANT", "OpenAI": "OAI", "Google": "GGL", "DeepSeek": "DS"}
+    inits = prov["provider"].map(_PROV_INIT).fillna(prov["provider"])
     fig = px.pie(prov, names="provider", values="cost", hole=0.62,
                  color_discrete_sequence=CHART_COLORS)
     fig.update_traces(
-        textinfo="percent+label",
-        textfont=dict(size=12, color="#FFFFFF"),
+        text=inits,
+        textinfo="text+percent",
+        textposition="inside",
+        insidetextorientation="horizontal",
+        textfont=dict(size=13, color="#FFFFFF"),
         marker=dict(line=dict(color="#FFFFFF", width=2)),
         hovertemplate="%{label}<br>$%{value:,.0f} (%{percent})<extra></extra>",
     )
     fig = style_fig(fig, height=340)
     fig.update_layout(
         showlegend=False,
+        uniformtext=dict(minsize=10, mode="hide"),
         annotations=[dict(
             text=f"<b>${total_spend:,.0f}</b><br><span style='font-size:11px;color:{MUTED}'>30-day total</span>",
             x=0.5, y=0.5, showarrow=False, font=dict(size=20, color=INK, family="Inter"),
@@ -262,7 +270,10 @@ fig.update_traces(
     marker_line_width=0, cliponaxis=False,
     hovertemplate="<b>%{x}</b><br>%{text}<extra></extra>",
 )
-fig.update_layout(showlegend=False, xaxis_title=None, yaxis_title="Spend ($)")
+fig.update_layout(
+    showlegend=False, xaxis_title=None, yaxis_title="Spend ($)",
+    yaxis_range=[0, team["cost"].max() * 1.18],
+)
 st.plotly_chart(style_fig(fig, height=340), use_container_width=True)
 
 st.caption("All figures are synthetic and for demonstration only.")

@@ -176,6 +176,13 @@ def _css() -> str:
     }}
     [data-testid="stDataFrame"] {{ border: 1.5px solid {BORDER_STRONG}; border-radius: 12px; }}
 
+    /* ---- Chart frames ---- */
+    [data-testid="stPlotlyChart"] {{
+        border: 1.5px solid {BORDER_STRONG}; border-radius: 14px; background: {SURFACE};
+        padding: .65rem .65rem .35rem; box-shadow: 0 1px 2px rgba(16,24,40,0.06);
+    }}
+    [data-testid="stPlotlyChart"] > div {{ border-radius: 10px; overflow: hidden; }}
+
     /* ---- Dividers ---- */
     hr {{ border: none; border-top: 1.5px solid {BORDER}; margin: 1.15rem 0; }}
 
@@ -281,11 +288,10 @@ def style_fig(fig, height: int = 360):
     """Apply the suite's clean, high-contrast look to a Plotly figure."""
     fig.update_layout(
         height=height,
-        margin=dict(l=8, r=12, t=36, b=8),
+        margin=dict(l=8, r=12, t=22, b=8),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, sans-serif", color=INK, size=13),
-        title_font=dict(family="Inter, sans-serif", size=15, color=INK),
         colorway=CHART_COLORS,
         legend=dict(
             orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
@@ -296,13 +302,14 @@ def style_fig(fig, height: int = 360):
             font=dict(family="Inter, sans-serif", size=12, color=INK),
         ),
     )
+    # NOTE: never set *title_font* without a title text — Plotly renders the
+    # literal string "undefined" in that case. Axis titles use default font.
     fig.update_xaxes(
         showgrid=False, zeroline=False, linecolor=BORDER, ticks="outside",
         tickcolor=BORDER, tickfont=dict(color=MUTED, size=12),
-        title_font=dict(color=MUTED, size=12),
     )
     fig.update_yaxes(
         showgrid=True, gridcolor=GRID, zeroline=False, linecolor="rgba(0,0,0,0)",
-        tickfont=dict(color=MUTED, size=12), title_font=dict(color=MUTED, size=12),
+        tickfont=dict(color=MUTED, size=12),
     )
     return fig

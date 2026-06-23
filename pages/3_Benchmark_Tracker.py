@@ -176,6 +176,7 @@ fig.update_layout(
     coloraxis_showscale=False,
     xaxis_title="Price-adjusted score  (composite ÷ cost per 1M tokens)",
     yaxis_title=None,
+    xaxis_range=[0, pa["price_adjusted"].max() * 1.15],
 )
 st.plotly_chart(style_fig(fig, height=360), use_container_width=True)
 st.caption("Higher = more quality per dollar. Best bang-for-buck sits at the top.")
@@ -184,22 +185,36 @@ st.caption("Higher = more quality per dollar. Best bang-for-buck sits at the top
 # Scatter: cost vs composite (bubble = # benchmarks)
 # ---------------------------------------------------------------------------
 st.markdown("### Price vs. performance")
+_ABBR = {
+    "Llama 3 8B": "L3-8B", "Llama 3 70B": "L3-70B", "Mistral 7B": "M-7B",
+    "Mixtral 8x7B": "MX-8x7B", "Gemma 7B": "G-7B", "Falcon 40B": "F-40B",
+}
+sc = df.copy()
+sc["abbr"] = sc["model"].map(_ABBR).fillna(sc["model"])
 fig = px.scatter(
-    df, x="cost_per_1m", y="composite", size="n_benchmarks", color="model",
-    text="model", size_max=40, color_discrete_sequence=CHART_COLORS,
+    sc, x="cost_per_1m", y="composite", color="model", text="abbr",
+    color_discrete_sequence=CHART_COLORS,
+    custom_data=["model", "cost_per_1m", "composite"],
 )
 fig.update_traces(
-    textposition="top center",
-    textfont=dict(size=11, color=INK),
-    marker=dict(line=dict(width=2, color="#FFFFFF"), opacity=0.92),
+    marker=dict(size=12, line=dict(width=1.5, color="#FFFFFF"), opacity=0.95),
+    textposition="top center", textfont=dict(size=11, color=INK), cliponaxis=False,
+    hovertemplate="<b>%{customdata[0]}</b><br>$%{customdata[1]:.2f}/1M tokens"
+                  "  ·  composite %{customdata[2]:.1f}<extra></extra>",
 )
+xmin, xmax = sc["cost_per_1m"].min(), sc["cost_per_1m"].max()
+ymin, ymax = sc["composite"].min(), sc["composite"].max()
+xpad = max((xmax - xmin) * 0.20, 0.15)
+ypad = max((ymax - ymin) * 0.22, 4)
 fig.update_layout(
     showlegend=False,
     xaxis_title="Cost per 1M tokens ($)",
     yaxis_title="Composite score",
+    xaxis_range=[xmin - xpad, xmax + xpad],
+    yaxis_range=[ymin - ypad, ymax + ypad],
 )
 st.plotly_chart(style_fig(fig, height=440), use_container_width=True)
-st.caption("Up and to the left is better — strong scores at low cost. Bubble size = benchmarks tracked.")
+st.caption("Up and to the left is better — strong scores at low cost. Each dot is a model (hover for full name).")
 
 # ---------------------------------------------------------------------------
 # Claude summary: what changed this week
