@@ -104,7 +104,7 @@ def cards() -> None:
                 """,
                 unsafe_allow_html=True,
             )
-            st.page_link(tool["page"], label=tool["label"], icon="\u2192")
+            st.page_link(tool["page"], label=f"{tool['label']}  \u2192")
 
 
 sidebar()
