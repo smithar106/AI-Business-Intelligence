@@ -13,17 +13,18 @@ import streamlit as st
 ACCENT = "#5B5FED"          # indigo
 ACCENT_SOFT = "#EEF0FE"     # indigo tint for fills / chips
 ACCENT_DARK = "#3F43C9"
-BG = "#F8F9FA"              # app background
+BG = "#F6F7FB"              # app background (cool, premium light)
 SURFACE = "#FFFFFF"         # cards
-INK = "#1F2430"            # primary text
-MUTED = "#6B7280"          # secondary text
-BORDER = "#ECEDF2"
-SUCCESS = "#16A34A"
+INK = "#101426"            # primary text (high contrast)
+MUTED = "#5A6275"          # secondary text (AA contrast on white)
+BORDER = "#E6E8F2"
+GRID = "#EEF0F7"           # subtle chart gridlines
+SUCCESS = "#15A34A"
 DANGER = "#E11D48"
 WARNING = "#D97706"
 
-# Categorical palette for charts (indigo-led).
-CHART_COLORS = ["#5B5FED", "#22B8CF", "#F59E0B", "#10B981", "#EC4899", "#8B5CF6"]
+# Categorical palette for charts — indigo-led, high-contrast, harmonious.
+CHART_COLORS = ["#5B5FED", "#0EA5E9", "#F59E0B", "#10B981", "#F43F5E", "#8B5CF6"]
 
 GITHUB_URL = "https://github.com/arthursmith"  # placeholder — update me
 
@@ -182,16 +183,31 @@ def banner(text: str, kind: str = "info", icon: str = "") -> None:
 
 
 def style_fig(fig, height: int = 360):
-    """Apply the suite's clean look to a Plotly figure."""
+    """Apply the suite's clean, high-contrast look to a Plotly figure."""
     fig.update_layout(
         height=height,
-        margin=dict(l=10, r=10, t=30, b=10),
+        margin=dict(l=8, r=12, t=36, b=8),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, sans-serif", color=INK, size=13),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        title_font=dict(family="Inter, sans-serif", size=15, color=INK),
         colorway=CHART_COLORS,
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+            font=dict(size=12, color=MUTED), bgcolor="rgba(0,0,0,0)",
+        ),
+        hoverlabel=dict(
+            bgcolor="#FFFFFF", bordercolor=BORDER,
+            font=dict(family="Inter, sans-serif", size=12, color=INK),
+        ),
     )
-    fig.update_xaxes(showgrid=False, zeroline=False, linecolor=BORDER)
-    fig.update_yaxes(showgrid=True, gridcolor=BORDER, zeroline=False)
+    fig.update_xaxes(
+        showgrid=False, zeroline=False, linecolor=BORDER, ticks="outside",
+        tickcolor=BORDER, tickfont=dict(color=MUTED, size=12),
+        title_font=dict(color=MUTED, size=12),
+    )
+    fig.update_yaxes(
+        showgrid=True, gridcolor=GRID, zeroline=False, linecolor="rgba(0,0,0,0)",
+        tickfont=dict(color=MUTED, size=12), title_font=dict(color=MUTED, size=12),
+    )
     return fig

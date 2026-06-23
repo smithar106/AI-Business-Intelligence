@@ -16,6 +16,8 @@ from utils.styles import (
     ACCENT,
     CHART_COLORS,
     DANGER,
+    INK,
+    MUTED,
     banner,
     inject_css,
     metric_tile,
@@ -100,13 +102,23 @@ st.text_input(
     placeholder="e.g. Which provider is driving most of our cost this month?",
 )
 
+def _ask_example(q: str):
+    # Runs before widgets are re-instantiated, so writing to the widget-backed
+    # key "spend_q" is allowed here (it is not in the main script body).
+    st.session_state["spend_q"] = q
+    st.session_state["spend_pending"] = q
+
+
 chip_cols = st.columns(len(EXAMPLES))
 for col, q in zip(chip_cols, EXAMPLES):
     with col:
-        if st.button(q, use_container_width=True, key=f"chip_{q}"):
-            st.session_state["spend_q"] = q
-            st.session_state["spend_pending"] = q
-            st.rerun()
+        st.button(
+            q,
+            use_container_width=True,
+            key=f"chip_{q}",
+            on_click=_ask_example,
+            args=(q,),
+        )
 
 ask = st.button("\U0001F4AC Ask", type="primary")
 if ask and st.session_state["spend_q"].strip():
@@ -198,33 +210,57 @@ row1 = st.columns([1, 1.4])
 with row1[0]:
     st.markdown("**Total spend by provider**")
     prov = by_provider(df)
-    fig = px.pie(prov, names="provider", values="cost", hole=0.55,
+    total_spend = prov["cost"].sum()
+    fig = px.pie(prov, names="provider", values="cost", hole=0.62,
                  color_discrete_sequence=CHART_COLORS)
-    fig.update_traces(textinfo="percent+label")
-    st.plotly_chart(style_fig(fig, height=320), use_container_width=True)
+    fig.update_traces(
+        textinfo="percent+label",
+        textfont=dict(size=12, color="#FFFFFF"),
+        marker=dict(line=dict(color="#FFFFFF", width=2)),
+        hovertemplate="%{label}<br>$%{value:,.0f} (%{percent})<extra></extra>",
+    )
+    fig = style_fig(fig, height=340)
+    fig.update_layout(
+        showlegend=False,
+        annotations=[dict(
+            text=f"<b>${total_spend:,.0f}</b><br><span style='font-size:11px;color:{MUTED}'>30-day total</span>",
+            x=0.5, y=0.5, showarrow=False, font=dict(size=20, color=INK, family="Inter"),
+        )],
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 with row1[1]:
-    st.markdown("**Daily spend trend** (anomalies in red)")
+    st.markdown("**Daily spend trend** — anomalies highlighted")
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=daily["date"], y=daily["cost"], mode="lines",
-        line=dict(color=ACCENT, width=3), name="Daily spend",
-        fill="tozeroy", fillcolor="rgba(91,95,237,0.08)",
+        line=dict(color=ACCENT, width=3, shape="spline"), name="Daily spend",
+        fill="tozeroy", fillcolor="rgba(91,95,237,0.10)",
+        hovertemplate="%{x|%b %d}<br>$%{y:,.0f}<extra></extra>",
     ))
     am = daily[daily["is_anomaly"]]
     if not am.empty:
         fig.add_trace(go.Scatter(
             x=am["date"], y=am["cost"], mode="markers",
-            marker=dict(color=DANGER, size=10, line=dict(color="#fff", width=1)),
+            marker=dict(color=DANGER, size=11, line=dict(color="#FFFFFF", width=2)),
             name="Anomaly",
+            hovertemplate="%{x|%b %d}<br>$%{y:,.0f} (anomaly)<extra></extra>",
         ))
-    st.plotly_chart(style_fig(fig, height=320), use_container_width=True)
+    fig = style_fig(fig, height=340)
+    fig.update_layout(legend=dict(orientation="h", y=1.04, x=0))
+    st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("**Spend by team**")
 team = by_team(df)
-fig = px.bar(team, x="team", y="cost", color="team", color_discrete_sequence=CHART_COLORS)
-fig.update_layout(showlegend=False)
-fig.update_traces(marker_line_width=0)
-st.plotly_chart(style_fig(fig, height=320), use_container_width=True)
+fig = px.bar(
+    team, x="team", y="cost", color="team", color_discrete_sequence=CHART_COLORS,
+    text=team["cost"].map(lambda v: f"${v:,.0f}"),
+)
+fig.update_traces(
+    textposition="outside", textfont=dict(color=INK, size=12),
+    marker_line_width=0, cliponaxis=False,
+)
+fig.update_layout(showlegend=False, xaxis_title=None, yaxis_title="Spend ($)")
+st.plotly_chart(style_fig(fig, height=340), use_container_width=True)
 
 st.caption("All figures are synthetic and for demonstration only.")

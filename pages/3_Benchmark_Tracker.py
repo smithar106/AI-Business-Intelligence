@@ -18,6 +18,7 @@ from utils.pricing import BENCHMARKS
 from utils.secrets import get_secret, has_secret
 from utils.styles import (
     CHART_COLORS,
+    INK,
     banner,
     inject_css,
     metric_tile,
@@ -161,11 +162,19 @@ st.caption("Click any column header to sort. Composite = mean of the 5 benchmark
 st.markdown("### Price vs. performance")
 fig = px.scatter(
     df, x="cost_per_1m", y="composite", size="n_benchmarks", color="model",
-    text="model", size_max=34, color_discrete_sequence=CHART_COLORS,
+    text="model", size_max=40, color_discrete_sequence=CHART_COLORS,
 )
-fig.update_traces(textposition="top center", textfont_size=11)
-fig.update_layout(xaxis_title="Cost per 1M tokens ($)", yaxis_title="Composite score")
-st.plotly_chart(style_fig(fig, height=420), use_container_width=True)
+fig.update_traces(
+    textposition="top center",
+    textfont=dict(size=11, color=INK),
+    marker=dict(line=dict(width=2, color="#FFFFFF"), opacity=0.92),
+)
+fig.update_layout(
+    showlegend=False,
+    xaxis_title="Cost per 1M tokens ($)",
+    yaxis_title="Composite score",
+)
+st.plotly_chart(style_fig(fig, height=440), use_container_width=True)
 st.caption("Up and to the left is better — strong scores at low cost. Bubble size = benchmarks tracked.")
 
 # ---------------------------------------------------------------------------
@@ -182,16 +191,26 @@ else:
             if alerts else "None over 2 points."
         )
         prompt = (
-            "You are an ML analyst. Write a concise weekly briefing titled with a single "
-            "sentence, then 2-3 short bullets, on the open-source LLM leaderboard below. "
-            "Call out the best price-adjusted pick, any regressions, and notable cost/quality "
-            "tradeoffs. Keep it under 130 words.\n\n"
+            "You are an ML analyst writing a weekly leaderboard briefing. Use EXACTLY this "
+            "structure and nothing else:\n"
+            "- Line 1: a single plain sentence summarizing the week (no emoji, no bold).\n"
+            "- Then exactly 3 lines, each on its own line, each starting with one emoji and a "
+            "bold label, in this order:\n"
+            "    \U0001F3C6 Best price-adjusted pick: ...\n"
+            "    \u26A0\uFE0F Worst cost/quality tradeoff: ...\n"
+            "    \U0001F4CA Notable tradeoff: ...\n"
+            "Keep each line to one sentence. Do not add headers, intros, or extra lines. "
+            "Under 130 words total.\n\n"
             f"LEADERBOARD:\n{table_txt}\n\nREGRESSIONS SINCE LAST RUN:\n{alert_txt}"
         )
         with st.spinner("Claude is summarizing the leaderboard…"):
             try:
-                st.session_state.bench_summary = claude_sync(prompt, max_tokens=420, temperature=0.4)
+                st.session_state.bench_summary = claude_sync(prompt, max_tokens=420, temperature=0.3)
             except Exception as exc:  # noqa: BLE001
                 st.session_state.bench_summary = f"_Summary unavailable: {exc}_"
+
+    # Render every line in one consistent format: each non-empty line as its own
+    # paragraph (uniform spacing), regardless of how the model spaced them.
+    _lines = [ln.strip() for ln in (st.session_state.bench_summary or "").splitlines() if ln.strip()]
     with st.container(border=True):
-        st.markdown(st.session_state.bench_summary)
+        st.markdown("\n\n".join(_lines))

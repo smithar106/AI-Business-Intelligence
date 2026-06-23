@@ -10,6 +10,7 @@ import asyncio
 import json
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from utils.llm import call_model, claude_json, claude_sync
@@ -17,11 +18,13 @@ from utils.pricing import MODELS, REGRESSION_MODELS
 from utils.secrets import has_secret
 from utils.styles import (
     ACCENT,
+    INK,
     banner,
     inject_css,
     metric_tile,
     page_header,
     sidebar_credit,
+    style_fig,
 )
 
 st.set_page_config(page_title="Model Regression Tester", page_icon="\U0001F9EA", layout="wide")
@@ -234,14 +237,24 @@ if results:
         vals = [v for v in vals if isinstance(v, (int, float))]
         return round(sum(vals) / len(vals), 2) if vals else 0.0
 
-    chart_df = pd.DataFrame(
-        {
-            model_a: [_composite(r["a"]["scores"]) for r in results],
-            model_b: [_composite(r["b"]["scores"]) for r in results],
-        },
-        index=[f"P{i + 1}" for i in range(n)],
+    chart_rows = []
+    for i, r in enumerate(results):
+        chart_rows.append({"Prompt": f"P{i + 1}", "Model": model_a, "Score": _composite(r["a"]["scores"])})
+        chart_rows.append({"Prompt": f"P{i + 1}", "Model": model_b, "Score": _composite(r["b"]["scores"])})
+    chart_df = pd.DataFrame(chart_rows)
+
+    fig = px.bar(
+        chart_df, x="Prompt", y="Score", color="Model", barmode="group",
+        color_discrete_sequence=[ACCENT, "#0EA5E9"], text="Score",
     )
-    st.bar_chart(chart_df, height=320, color=[ACCENT, "#22B8CF"])
+    fig.update_traces(
+        textposition="outside", textfont=dict(color=INK, size=11),
+        marker_line_width=0, cliponaxis=False,
+    )
+    fig.update_layout(yaxis=dict(range=[0, 10.8]), yaxis_title="Quality (1–10)", xaxis_title=None)
+    fig = style_fig(fig, height=340)
+    fig.update_layout(legend=dict(orientation="h", y=1.06, x=0))
+    st.plotly_chart(fig, use_container_width=True)
     st.caption("Composite quality = mean of accuracy, clarity & completeness (1–10), judged by claude-sonnet-4-6.")
 
     # Side-by-side outputs
