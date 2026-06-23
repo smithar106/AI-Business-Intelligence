@@ -47,7 +47,7 @@ workspace key. No admin or workspace-management endpoints are used anywhere.
 | Variable | Used by |
 | --- | --- |
 | `ANTHROPIC_API_KEY` | All three pages |
-| `OPENAI_API_KEY` | Model Regression Tester |
+| `DEEPSEEK_API_KEY` | Model Regression Tester |
 | `GEMINI_API_KEY` | Model Regression Tester |
 | `HUGGINGFACE_TOKEN` | Benchmark Tracker |
 

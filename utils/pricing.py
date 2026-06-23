@@ -37,6 +37,18 @@ MODELS: dict[str, dict] = {
         "price_in": 0.15,
         "price_out": 0.60,
     },
+    "deepseek-chat": {
+        "provider": "deepseek",
+        "api_model": "deepseek-chat",
+        "price_in": 0.27,
+        "price_out": 1.10,
+    },
+    "deepseek-reasoner": {
+        "provider": "deepseek",
+        "api_model": "deepseek-reasoner",
+        "price_in": 0.55,
+        "price_out": 2.19,
+    },
     "gemini-1.5-pro": {
         "provider": "google",
         "api_model": "gemini-1.5-pro",
@@ -45,7 +57,13 @@ MODELS: dict[str, dict] = {
     },
 }
 
-REGRESSION_MODELS = list(MODELS.keys())
+REGRESSION_MODELS = [
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5",
+    "deepseek-chat",
+    "deepseek-reasoner",
+    "gemini-1.5-pro",
+]
 
 # Claude model used as the meta-evaluator + narrative generator everywhere.
 EVALUATOR_MODEL = "claude-sonnet-4-6"

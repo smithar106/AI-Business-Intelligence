@@ -133,6 +133,24 @@ async def _call_openai(api_model: str, prompt: str) -> tuple[str, int, int]:
     return text, usage.prompt_tokens, usage.completion_tokens
 
 
+async def _call_deepseek(api_model: str, prompt: str) -> tuple[str, int, int]:
+    # DeepSeek is OpenAI-API-compatible — reuse the OpenAI SDK with its base URL.
+    from openai import AsyncOpenAI
+
+    key = get_secret("DEEPSEEK_API_KEY")
+    if not key:
+        raise RuntimeError("DEEPSEEK_API_KEY is not set.")
+    client = AsyncOpenAI(api_key=key, base_url="https://api.deepseek.com")
+    resp = await client.chat.completions.create(
+        model=api_model,
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = (resp.choices[0].message.content or "").strip()
+    usage = resp.usage
+    return text, usage.prompt_tokens, usage.completion_tokens
+
+
 async def _call_gemini(api_model: str, prompt: str) -> tuple[str, int, int]:
     import google.generativeai as genai
 
@@ -152,6 +170,7 @@ async def _call_gemini(api_model: str, prompt: str) -> tuple[str, int, int]:
 _DISPATCH = {
     "anthropic": _call_anthropic,
     "openai": _call_openai,
+    "deepseek": _call_deepseek,
     "google": _call_gemini,
 }
 

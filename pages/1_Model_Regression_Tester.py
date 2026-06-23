@@ -37,6 +37,7 @@ page_header(
 PROVIDER_KEYS = {
     "anthropic": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
     "google": "GEMINI_API_KEY",
 }
 
