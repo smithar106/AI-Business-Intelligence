@@ -67,6 +67,32 @@ def claude_sync(
     return "".join(block.text for block in resp.content if block.type == "text").strip()
 
 
+def claude_stream(
+    prompt: str,
+    system: str | None = None,
+    model: str = EVALUATOR_MODEL,
+    max_tokens: int = 700,
+    temperature: float = 0.3,
+):
+    """Yield Claude's response incrementally — designed for st.write_stream."""
+    api_model = MODELS.get(model, {}).get("api_model", model)
+    kwargs: dict[str, Any] = {
+        "model": api_model,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if system:
+        kwargs["system"] = system
+    try:
+        client = _anthropic_sync_client()
+        with client.messages.stream(**kwargs) as stream:
+            for text in stream.text_stream:
+                yield text
+    except Exception as exc:  # noqa: BLE001 — surface to the UI as text
+        yield f"\n\n_Could not generate an answer: {exc}_"
+
+
 def claude_json(prompt: str, system: str | None = None, max_tokens: int = 1500) -> Any:
     return parse_json(claude_sync(prompt, system=system, max_tokens=max_tokens))
 

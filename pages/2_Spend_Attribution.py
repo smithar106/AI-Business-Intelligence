@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from utils.llm import claude_sync
+from utils.llm import claude_stream
 from utils.secrets import has_secret
 from utils.styles import (
     ACCENT,
@@ -43,9 +43,33 @@ page_header(
 )
 
 banner(
-    "<b>Demo mode</b> — showing synthetic data. Contact <b>Arthur</b> to deploy with your org's data.",
+    "<b>Demo mode</b> — showing synthetic data representative of a real AI ops environment. "
+    "Contact <b>Arthur Smith</b> to deploy with your org's live data.",
     kind="info",
     icon="\U0001F9EA",
+)
+
+
+st.markdown(
+    """
+    <style>
+    /* Indigo left-bordered response box for the streamed Q&A answer. */
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.qa-marker) {
+        border: 1px solid #ECEDF2 !important;
+        border-left: 4px solid #5B5FED !important;
+        border-radius: 12px;
+        background: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(16,24,40,0.05), 0 8px 24px -18px rgba(16,24,40,0.18);
+    }
+    .qa-marker { height: 0; margin: 0; }
+    .qa-question {
+        font-size: .8rem; font-weight: 600; color: #3F43C9;
+        background: #EEF0FE; display: inline-block; padding: .22rem .6rem;
+        border-radius: 999px; margin-bottom: .35rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -57,9 +81,9 @@ def load_df():
 df = load_df()
 EXAMPLES = [
     "Which model cost the most last week?",
-    "Are we trending up or down?",
-    "Which team is spending the most?",
-    "Flag any anomalies",
+    "Are we trending up or down on spend?",
+    "Which provider is more expensive?",
+    "Were there any anomalies this month?",
 ]
 
 st.session_state.setdefault("spend_q", "")
@@ -101,16 +125,12 @@ if question:
             "out the anomaly window explicitly. Keep it under ~150 words."
         )
         prompt = f"DATASET:\n{build_context(df)}\n\nQUESTION: {question}\n\nAnswer:"
-        with st.spinner("Claude is analyzing your spend…"):
-            try:
-                answer = claude_sync(prompt, system=system, max_tokens=500, temperature=0.3)
-            except Exception as exc:  # noqa: BLE001
-                answer = f"_Could not generate an answer: {exc}_"
-        st.markdown(
-            f"<div class='card'><div class='pill' style='margin-bottom:.6rem;'>{question}</div>"
-            f"<div>{answer}</div></div>",
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True):
+            st.markdown('<div class="qa-marker"></div>', unsafe_allow_html=True)
+            st.markdown(f"<span class='qa-question'>{question}</span>", unsafe_allow_html=True)
+            st.write_stream(
+                claude_stream(prompt, system=system, max_tokens=500, temperature=0.3)
+            )
         with st.expander("Supporting data"):
             c1, c2 = st.columns(2)
             c1.caption("By model (30d)")
