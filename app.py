@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from utils.styles import inject_css, sidebar_credit, ACCENT
+from utils.styles import inject_css, sidebar_nav
 
 st.set_page_config(
     page_title="AI Ops Intelligence Suite",
@@ -54,23 +54,6 @@ TOOLS = [
 ]
 
 
-def sidebar() -> None:
-    with st.sidebar:
-        st.markdown(
-            f"<h2 style='margin-bottom:.1rem;'>\U0001F4CA AI Ops</h2>"
-            f"<div style='color:{ACCENT}; font-weight:600; font-size:.8rem; "
-            f"letter-spacing:.08em; text-transform:uppercase;'>Intelligence Suite</div>",
-            unsafe_allow_html=True,
-        )
-        st.markdown("<div style='height:.8rem;'></div>", unsafe_allow_html=True)
-        st.markdown("**Navigate**")
-        st.page_link("app.py", label="Home", icon="\U0001F3E0")
-        st.page_link("pages/1_Model_Regression_Tester.py", label="Model Regression Tester", icon="\U0001F9EA")
-        st.page_link("pages/2_Spend_Attribution.py", label="Spend Attribution", icon="\U0001F4B8")
-        st.page_link("pages/3_Benchmark_Tracker.py", label="Benchmark Tracker", icon="\U0001F3C6")
-    sidebar_credit()
-
-
 def hero() -> None:
     st.markdown(
         """
@@ -107,6 +90,6 @@ def cards() -> None:
             st.page_link(tool["page"], label=f"{tool['label']}  \u2192")
 
 
-sidebar()
+sidebar_nav()
 hero()
 cards()

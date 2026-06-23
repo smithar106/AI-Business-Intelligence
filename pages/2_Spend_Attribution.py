@@ -22,7 +22,7 @@ from utils.styles import (
     inject_css,
     metric_tile,
     page_header,
-    sidebar_credit,
+    sidebar_nav,
     style_fig,
 )
 from utils.synthetic import (
@@ -36,7 +36,7 @@ from utils.synthetic import (
 
 st.set_page_config(page_title="Spend Attribution", page_icon="\U0001F4B8", layout="wide")
 inject_css()
-sidebar_credit()
+sidebar_nav()
 
 page_header(
     "Spend Attribution",
@@ -251,10 +251,11 @@ with row1[1]:
     st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("**Spend by team**")
-team = by_team(df)
+team = by_team(df).copy()
+team["label"] = team["cost"].map(lambda v: f"${v:,.0f}")
 fig = px.bar(
-    team, x="team", y="cost", color="team", color_discrete_sequence=CHART_COLORS,
-    text=team["cost"].map(lambda v: f"${v:,.0f}"),
+    team, x="team", y="cost", color="team",
+    color_discrete_sequence=CHART_COLORS, text="label",
 )
 fig.update_traces(
     textposition="outside", textfont=dict(color=INK, size=12),

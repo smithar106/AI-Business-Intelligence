@@ -23,13 +23,13 @@ from utils.styles import (
     inject_css,
     metric_tile,
     page_header,
-    sidebar_credit,
+    sidebar_nav,
     style_fig,
 )
 
 st.set_page_config(page_title="Model Regression Tester", page_icon="\U0001F9EA", layout="wide")
 inject_css()
-sidebar_credit()
+sidebar_nav()
 
 page_header(
     "Model Regression Tester",

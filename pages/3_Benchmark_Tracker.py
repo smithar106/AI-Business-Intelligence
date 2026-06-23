@@ -23,13 +23,13 @@ from utils.styles import (
     inject_css,
     metric_tile,
     page_header,
-    sidebar_credit,
+    sidebar_nav,
     style_fig,
 )
 
 st.set_page_config(page_title="Benchmark Tracker", page_icon="\U0001F3C6", layout="wide")
 inject_css()
-sidebar_credit()
+sidebar_nav()
 
 page_header(
     "Benchmark Tracker",

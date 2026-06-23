@@ -102,9 +102,12 @@ def _css() -> str:
 
     /* ---- Banners / chips ---- */
     .banner {{
-        border-radius: 12px; padding: .85rem 1.1rem; font-size: .9rem; font-weight: 500;
-        display:flex; align-items:center; gap:.55rem; margin-bottom: 1.2rem;
+        border-radius: 12px; padding: .8rem 1.05rem; font-size: .9rem; font-weight: 500;
+        display:flex; align-items:flex-start; gap:.6rem; margin-bottom: 1.2rem; line-height: 1.5;
     }}
+    .banner .banner-ico {{ flex: 0 0 auto; font-size: 1.05rem; line-height: 1.45; }}
+    .banner .banner-text {{ flex: 1 1 auto; }}
+    .banner .banner-text b {{ font-weight: 700; }}
     .banner.info {{ background: {ACCENT_SOFT}; color: {ACCENT_DARK}; border: 1px solid #DDE0FB; }}
     .banner.danger {{ background: #FEF0F3; color: {DANGER}; border: 1px solid #FBD5DE; }}
     .banner.warn {{ background: #FEF6E7; color: {WARNING}; border: 1px solid #FBE6C0; }}
@@ -134,6 +137,9 @@ def _css() -> str:
     .credit b {{ color: {INK}; }}
     .credit a {{ color: {ACCENT}; font-weight: 600; }}
 
+    /* Hide Streamlit's auto-generated page nav — we render a branded one. */
+    [data-testid="stSidebarNav"] {{ display: none; }}
+
     #MainMenu {{ visibility: hidden; }}
     footer {{ visibility: hidden; }}
     </style>
@@ -160,6 +166,24 @@ def sidebar_credit() -> None:
         )
 
 
+def sidebar_nav() -> None:
+    """Branded sidebar navigation (replaces Streamlit's hidden auto-nav)."""
+    with st.sidebar:
+        st.markdown(
+            f"<h2 style='margin-bottom:.1rem;'>\U0001F4CA AI Ops</h2>"
+            f"<div style='color:{ACCENT}; font-weight:600; font-size:.78rem; "
+            f"letter-spacing:.1em; text-transform:uppercase;'>Intelligence Suite</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
+        st.markdown("**Navigate**")
+        st.page_link("app.py", label="Home", icon="\U0001F3E0")
+        st.page_link("pages/1_Model_Regression_Tester.py", label="Model Regression Tester", icon="\U0001F9EA")
+        st.page_link("pages/2_Spend_Attribution.py", label="Spend Attribution", icon="\U0001F4B8")
+        st.page_link("pages/3_Benchmark_Tracker.py", label="Benchmark Tracker", icon="\U0001F3C6")
+    sidebar_credit()
+
+
 def page_header(title: str, subtitle: str, icon: str = "") -> None:
     st.markdown(
         f"""
@@ -179,7 +203,11 @@ def metric_tile(label: str, value: str, sub: str = "", accent: bool = False) -> 
 
 
 def banner(text: str, kind: str = "info", icon: str = "") -> None:
-    st.markdown(f'<div class="banner {kind}">{icon} {text}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="banner {kind}"><span class="banner-ico">{icon}</span>'
+        f'<span class="banner-text">{text}</span></div>',
+        unsafe_allow_html=True,
+    )
 
 
 def style_fig(fig, height: int = 360):
